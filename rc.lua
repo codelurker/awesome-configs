@@ -25,7 +25,7 @@ settings = {
 
   --{{{ apps
   ["apps"] = { 
-    ["terminal"]  = "urxvtc",
+    ["terminal"]  = "urxvt",
     ["browser"]   = "firefox",
     ["mail"]      = "thunderbird",
     ["filemgr"]   = "pcmanfm",
@@ -43,14 +43,15 @@ settings = {
     awful.layout.suit.floating
   },
   --}}}
-}
+} 
 
-beautiful.init(settings.theme_path)        -- Initialize theme
-shifty.modkey = settings.modkey
+--{{{ shifty configuration
+settings.shifty = {
 
---{{{ SHIFTY configuration
---{{{ configured tags
-shifty.config.tags = {
+  ["modkey"] = settings.modkey,
+
+  --{{{ configured tags
+  ["tags"] = {
     ["w2"] =     { layout = awful.layout.suit.max,          mwfact=0.62, exclusive = false, solitary = false, position = 1, init = true, screen = 2} ,
     ["w1"] =     { layout = awful.layout.suit.max,          mwfact=0.62, exclusive = false, solitary = false, position = 1, init = true, screen = 1, slave = true } ,
     ["ds"] =     { layout = awful.layout.suit.max,          mwfact=0.70, exclusive = false, solitary = false, position = 2, persist = false, nopopup = false, slave = false } ,
@@ -60,37 +61,42 @@ shifty.config.tags = {
     ["vbx"] =    { layout = awful.layout.suit.tile.bottom,  mwfact=0.75, exclusive = true , solitary = true , position = 6,} ,
     ["media"] =  { layout = awful.layout.suit.float,                     exclusive = false, solitary = false, position = 8 } ,
     ["office"] = { position = 9, layout = awful.layout.suit.tile} ,
+  },
+  --}}}
+
+  --{{{ application matching rules
+  ["apps"] = {
+    { match = { "Navigator","Vimperator","Gran Paradiso"              } , tag = "web"                            } ,
+    { match = { "Shredder.*"                                          } , tag = "mail"                           } ,
+    { match = { "pcmanfm"                                             } , slave = true                           } ,
+    { match = { "OpenOffice.*"                                        } , tag = "office"                         } ,
+    { match = { "pcb","gschem"                                        } , tag = "dz", slave = false              } ,
+    { match = { "PCB_Log","Status","Page Manager"                     } , tag = "dz", slave = true               } ,
+    { match = { "acroread","Apvlv"                                    } , tag = "ds",                            } ,
+    { match = { "VBox.*","VirtualBox.*"                               } , tag = "vbx",                           } ,
+    { match = { "Mplayer.*","Mirage","gimp","gtkpod","Ufraw","easytag"} , tag = "media",         nopopup = true, } ,
+    { match = { "MPlayer", "Gnuplot", "galculator"                    } , float = true                           } ,
+    { match = { "urxvt","sakura","vim"                                } , honorsizehints = false, slave = true   } ,
+  },
+  --}}}
+
+  --{{{ shifty configuration params
+  ["defaults"] = { 
+    layout = awful.layout.suit.tile.bottom, 
+    ncol = 1, floatBars=true,
+    run = function(tag) 
+      shstrng = "Shifty Created: " ..(awful.tag.getproperty(tag,"position") or shifty.tag2index(mouse.screen,tag)).." : "..tag.name
+      shstrng = markup.fg( beautiful.fg_normal,  markup.font("monospace",markup.fg(beautiful.fg_sb_hi,shstrng)))
+      naughty.notify({ text = shstrng })
+    end,
+  },
+  --}}}
 }
 --}}}
 
---{{{ application matching rules
-shifty.config.apps = {
-         { match = { "Navigator","Vimperator","Gran Paradiso"              } , tag = "web"                            } ,
-         { match = { "Shredder.*"                                          } , tag = "mail"                           } ,
-         { match = { "pcmanfm"                                             } , slave = true                           } ,
-         { match = { "OpenOffice.*"                                        } , tag = "office"                         } ,
-         { match = { "pcb","gschem"                                        } , tag = "dz", slave = false              } ,
-         { match = { "PCB_Log","Status","Page Manager"                     } , tag = "dz", slave = true               } ,
-         { match = { "acroread","Apvlv"                                    } , tag = "ds",                            } ,
-         { match = { "VBox.*","VirtualBox.*"                               } , tag = "vbx",                           } ,
-         { match = { "Mplayer.*","Mirage","gimp","gtkpod","Ufraw","easytag"} , tag = "media",         nopopup = true, } ,
-         { match = { "MPlayer", "Gnuplot", "galculator"                    } , float = true                           } ,
-         { match = { "urxvt","sakura","vim"                                } , honorsizehints = false, slave = true   } ,
-}
---}}}
 
-shifty.config.defaults={  layout = awful.layout.suit.tile.bottom, ncol = 1, floatBars=true,
-                            run = function(tag) 
-                            naughty.notify({ 
-                              text = markup.fg( beautiful.fg_normal,  markup.font("monospace",markup.fg(beautiful.fg_sb_hi, 
-                                                "Shifty Created: "
-                                                  ..(awful.tag.getproperty(tag,"position") or shifty.tag2index(mouse.screen,tag))..
-                                                    " : "..tag.name))) 
-                            }) end,
-                       }
-
+beautiful.init(settings.theme_path)        -- Initialize theme
 -- }}} 
--- }}}
 
 -- {{{ -- Statusbar, menus & Widgets
 -- Create a systray
@@ -115,9 +121,9 @@ mytasklist.buttons = { button({ }, 1, function (c) client.focus = c; c:raise() e
                        button({ }, 5, function () awful.client.focus.byidx(-1); client.focus:raise() end) }
 
 widget_spacer_l = widget({type = "textbox", name = "widget_spacer", align = "left" })
-widget_spacer_l.width = 5 
+widget_spacer_l.width = 5
 widget_spacer_r  = widget({type = "textbox", name = "widget_spacer", align = "right" })
-widget_spacer_r.width = 5 
+widget_spacer_r.width = 5
 ---}}}
 
 -- {{{ -- DATE widget
@@ -232,8 +238,7 @@ end
 -- }}}
 
 -- shifty initialization needs to go after the taglist has been created
-shifty.taglist = mytaglist
-shifty.init()
+settings.shifty.taglist = mytaglist
 -- }}}
 
 -- {{{ Mouse bindings
@@ -402,7 +407,7 @@ globalkeys =
   -- }}}
 }
 -- {{{ - TAGS loop bindings
-for i=1, ( shifty.config.maxtags or 9 ) do
+for i=1, ( settings.maxtags or 9 ) do
   table.insert(globalkeys, key({ settings.modkey }, i, function () local t =  awful.tag.viewonly(shifty.getpos(i)) end))
   table.insert(globalkeys, key({ settings.modkey, "Control" }, i, function () local t = shifty.getpos(i); t.selected = not t.selected end))
   table.insert(globalkeys, key({ settings.modkey, "Control", "Shift" }, i, function () if client.focus then awful.client.toggletag(shifty.getpos(i)) end end))
@@ -423,8 +428,7 @@ end
 -- }}} 
 
 -- {{{ clientkeys
-clientkeys = 
-{
+settings.shifty.clientkeys = {
   key({ settings.modkey, "Shift" },"0", function () client.focus.sticky = not client.focus.sticky end),  -- client on all tags
   key({ settings.modkey, "Control" }, "m",                                                               -- toggle client maximize 
     function(c) 
@@ -455,11 +459,13 @@ clientkeys =
     awful.client.focus.byidx(-1)
   end),
 }
-shifty.config.clientkeys = clientkeys
+
 -- }}}
 
 -- Set keys
 root.keys(globalkeys)
+
+shifty.init( settings.shifty )
 
 --- }}}
 
