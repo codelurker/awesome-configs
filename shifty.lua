@@ -42,15 +42,17 @@ local wibox = wibox
 local print = print
 module("shifty")
 
-index_cache = {}
-config = {}
-config.tags = {}
-config.apps = {}
-config.defaults = {}
-config.guess_name = true
-config.guess_position = true
-config.remember_index = true
-config.clientkeys = {}
+local index_cache = {}
+local config = { 
+  ["taglist"] = {},
+  ["tags"] = {},
+  ["apps"]= {},
+  ["defaults"]  = {},
+  ["guess_name"] = true,
+  ["guess_position"] = true,
+  ["remember_index"] = true,
+  ["clientkeys"] = {},
+}
 
 --{{{ name2tag: matches string 'name' to return a tag object 
 -- @param name : name of tag to find
@@ -111,7 +113,7 @@ function rename(tag, prefix, no_selectall, initial)
   awful.prompt.run( { 
     fg_cursor = fg, bg_cursor = bg, ul_cursor = "single",
     prompt = tag2index(scr,t)..": ", selectall = not no_selectall,  },
-    taglist[scr][tag2index(scr,t)*2],
+    config.taglist[scr][tag2index(scr,t)*2],
     function (name) if name:len() > 0 then t.name = name; end end, 
     completion,
     awful.util.getdir("cache") .. "/history_tags", nil,
@@ -570,9 +572,12 @@ end
 --{{{ init : search shifty.config.tags for initial set of tags to open
 function init(args)
   if args and args.tags and args.apps and args.defaults then 
-    -- do something
-    setconfig()
+    for k,_ in pairs(args) do
+      print(k,args[k])
+      config[k] = args[k]
+    end
   else
+    print("arg check fails")
     return 
   end
 
