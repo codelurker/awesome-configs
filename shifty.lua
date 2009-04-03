@@ -568,7 +568,14 @@ end
 --}}}
 
 --{{{ init : search shifty.config.tags for initial set of tags to open
-function init()
+function init(args)
+  if args and args.tags and args.apps and args.defaults then 
+    -- do something
+    setconfig()
+  else
+    return 
+  end
+
   local numscr = screen.count()
 
   for i, j in pairs(config.tags) do
