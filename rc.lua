@@ -17,7 +17,7 @@ require("fs")
 require("volume")
 print("cachedir= " .. awful.util.getdir("cache"))
 
--- {{{ Variable definitions
+-- {{{ General Variables
 settings = {
   ["modkey"] = "Mod4",
   ["theme_path"] = "/home/perry/.config/awesome/themes/grey/theme",
@@ -44,6 +44,7 @@ settings = {
   },
   --}}}
 } 
+-- }}} 
 
 --{{{ shifty configuration
 settings.shifty = {
@@ -94,9 +95,7 @@ settings.shifty = {
 }
 --}}}
 
-
 beautiful.init(settings.theme_path)        -- Initialize theme
--- }}} 
 
 -- {{{ -- Statusbar, menus & Widgets
 -- Create a systray
