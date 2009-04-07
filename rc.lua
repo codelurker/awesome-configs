@@ -330,7 +330,7 @@ globalkeys =
   key({ settings.modkey, "Mod1" },"h", function () awful.util.spawn('sudo pm-hibernate') end),
   key({ settings.modkey, "Mod1" },"s", function () 
     os.execute('sudo pm-suspend')
-    awful.util.spawn('slock')
+    -- awful.util.spawn('slock')
   end),
   key({ settings.modkey, "Mod1" },"r", function () awful.util.spawn('sudo reboot') end),
   key({ settings.modkey, "Mod1" },"l", function () awful.util.spawn('slock') end),
