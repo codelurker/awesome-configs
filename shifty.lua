@@ -117,8 +117,13 @@ function rename(tag, prefix, no_selectall, initial)
     function (name) if name:len() > 0 then t.name = name; end end, 
     completion,
     awful.util.getdir("cache") .. "/history_tags", nil,
-    function () if initial and t.name == before then del(t)
-      else awful.tag.setproperty(t,"initial",true); set(t) end
+    function () 
+      if initial and t.name == before then 
+        del(t)
+      else 
+        awful.tag.setproperty(t,"initial",true)
+        set(t)
+      end
       awful.hooks.user.call("tags", scr)
     end
     )
