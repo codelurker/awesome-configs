@@ -95,9 +95,9 @@ function menu_taglist(menu, t)
     menu.items = {
         {(t.selected and "Hide") or "Merge", function()
             t.selected = not t.selected end},
-        {"Rename", function() shifty.rename(t) end},
+        {"Rename", function() awful.tag.rename(t) end},
         {"Restore", function() tag_restore_defaults(t) end},
-        {"Delete", function() shifty.del(t) end},
+        {"Delete", function() awful.tag.delete(t) end},
     }
 
     if num_screens > 1 then
@@ -221,7 +221,7 @@ function menu_clients(menu, c)
         end
         table.insert(tgs_t, #tgs_t + 1, {"New tag", function()
             new_tag_name = (c.instance and c.instance:gsub("%s.+$", "")) or nil
-            t = shifty.add( {name = new_tag_name, screen = s})
+            t = awful.tag.add( {name = new_tag_name, screen = s})
             awful.client.movetotag(t, c)
             awful.tag.viewonly(t)
             client.focus = c
@@ -307,11 +307,14 @@ widget_table1 = {
     layout = awful.widget.layout.horizontal.rightleft
 }
 
+widgets.pb = {}
 for s = 1, screen.count() do
     --{{{create the 'statusbars'
 
     widgets.promptbox[s] = awful.widget.prompt({layout =
                                      awful.widget.layout.horizontal.leftright})
+
+    widgets.pb[s] = widget({type = "textbox"})
 
     widgets.layoutbox[s] = awful.widget.layoutbox(s)
 
@@ -353,6 +356,7 @@ for s = 1, screen.count() do
         },
         --}}}
 
+        widgets.pb[s],
         (s==1 and widget_table1) or
         {
             widgets.rspace, widgets.date, widgets.rspace,
@@ -361,7 +365,7 @@ for s = 1, screen.count() do
 
         widgets.tasklist[s], widgets.rspace,
         layout = awful.widget.layout.horizontal.leftright,
-        height = widgets.wibox[s].height
+        height = widgets.wibox[s].height,
     }
 end
 --}}}

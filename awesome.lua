@@ -13,7 +13,6 @@ beautiful.init(theme_path.."/theme.lua")
 require("naughty")
 -- custom modules
 require("markup")
-require("shifty")
 require("mocp")
 require("calendar")
 require("battery")
@@ -61,50 +60,13 @@ end
 
 function tag_restore_defaults(t)
     -- {{{
-    local t_defaults = shifty.config.tags[t.name] or shifty.config.defaults
+    local t_defaults = mytags[t.name]
+
+    if t_defaults == nil then return end
 
     for k,v in pairs(t_defaults) do
         awful.tag.setproperty(t, k, v)
     end
-end
---}}}
-
-function tag_move(t, scr)
-    -- {{{
-    local ts = t or awful.tag.selected()
-    local screen_target = scr or awful.util.cycle(screen.count(), ts.screen + 1)
-
-    shifty.set(ts, {screen = screen_target})
-end
---}}}
-
-function tag_to_screen(t, scr)
-    -- {{{
-    local ts = t or awful.tag.selected()
-    local screen_origin = ts.screen
-    local screen_target = scr or awful.util.cycle(screen.count(), ts.screen + 1)
-
-    awful.tag.history.restore(ts.screen,1)
-    tag_move(ts, screen_target)
-
-    -- never waste a screen
-    if #(screen[screen_origin]:tags()) == 0 then
-        for _, tag in pairs(screen[screen_target]:tags()) do
-            if not tag.selected then
-                tag_move(tag, screen_origin)
-                tag.selected = true
-                break
-            end
-        end
-    end
-
-    awful.tag.viewonly(ts)
-    mouse.screen = ts.screen
-    if #ts:clients() > 0 then
-        local c = ts:clients()[1]
-        client.focus = c
-    end
-
 end
 --}}}
 
@@ -119,28 +81,6 @@ function workspace_prev()
         awful.tag.viewprev(screen[s])
     end
 end
-
-function tag_search(name, merge)
-    -- {{{
-    local merge = merge or false
-
-    for s = 1, screen.count() do
-        t = shifty.name2tag(name,s)
-        if t ~= nil then
-            if t.screen ~= mouse.screen then
-                awful.screen.focus(t.screen)
-            end
-            if merge then
-                t.selected = not t.selected
-            else
-                awful.tag.viewonly(t)
-            end
-            return true
-        end
-    end
-    return false
-end
---}}}
 
 function tm_key(obj, key, value)
     -- {{{
@@ -317,21 +257,13 @@ function tag_slide(filter, value, scr)
 end
 --}}}
 
-function tagScreenless()
-    -- {{{wip
-    local allTags = {}
-    local curTag = awful.tag.selected()
-    for s = 1, screen.count() do
-        t = shifty.name2tag(name,s)
-        if t ~= nil then
-            awful.tag.viewonly(t)
-            awful.screen.focus(awful.util.cycle(screen.count(),s+mouse.screen))
-            return true
+function name2tag(name, s)
+    for _, t in pairs(screen[s]:tags()) do
+        if t.name == name then
+            return t
         end
     end
-    return false
 end
---}}}
 
 -- Called externally and just pops to or merges with my active vim server when
 -- new files are dumped to it. (vim-start.sh)
@@ -340,7 +272,7 @@ end
 function tagPop(name)
     -- {{{tagPop()
     for s = 1, screen.count() do
-        t = shifty.name2tag(name,s)
+        t = name2tag(name,s)
         if t ~= nil then
             if t.screen == awful.tag.selected().screen then
                 t.selected = true
@@ -356,6 +288,12 @@ end
 settings   = dofile(awful.util.getdir("config").."/settings.lua")
 widgets    = dofile(awful.util.getdir("config").."/widgets.lua")
 globalkeys = dofile(awful.util.getdir("config").."/keys.lua")
+
+testing = dofile(awful.util.getdir("config").."/testing.lua")
+
+for name, props in pairs(settings.tags) do
+    awful.tag.add(name, props)
+end
 
 -- {{{Mouse bindings
 root.buttons(awful.util.table.join(
@@ -409,10 +347,6 @@ clientkeys = awful.util.table.join(
 
 -- Set keys
 root.keys(globalkeys)
-
-shifty.config.clientkeys = clientkeys
-shifty.taglist = widgets.taglist
-shifty.init()
 
 -- {{{signals
 client.add_signal("focus", function(c)

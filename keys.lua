@@ -66,14 +66,39 @@ globalkeys = awful.util.table.join(
     key_gen({key = "k"}, awful.client.focus.byidx, -1),
     key_gen({key = "e"}, revelation.revelation),
 
-    --{{{ shiftycentric
+    --{{{ tag manipulation
     key_gen({key = "Escape"}, awful.tag.history.restore),
-    key_gen({key = "n"}, shifty.send_next),
-    key_gen({key = "n", modifiers = {"Shift"}}, shifty.send_prev),
-    key_gen({key = "n", modifiers = {"Control"}}, tag_to_screen),
-    key_gen({key = "r", modifiers = {"Shift"}}, shifty.rename),
-    key_gen({key = "d", modifiers = {"Shift"}}, shifty.del),
-    key_gen({key = "a", modifiers = {"Shift"}}, shifty.add),
+    key_gen({key = "n"},
+        function() awful.tag.move(awful.tag.getidx() + 1) end),
+    key_gen({key = "n", modifiers = {"Shift"}},
+        function() awful.tag.move(awful.tag.getidx() - 1) end),
+    key_gen({key = "n", modifiers = {"Control"}}, function()
+        --{{{ move tag to next screen
+        tscr = awful.util.cycle(screen.count(), awful.tag.selected().screen + 1)
+        print("target scr", tscr)
+        lt = awful.tag.move_screen(tscr)
+        awful.tag.viewonly(lt)
+        print("moved tag screen", lt.screen)
+        mouse.screen = lt.screen
+        if #lt:clients() > 0 then client.focus = ts:clients()[1] end
+        end), --}}}
+    key_gen({key = "r", modifiers = {"Shift"}}, awful.tag.rename),
+    key_gen({key = "d", modifiers = {"Shift"}}, awful.tag.delete),
+    key_gen({key = "a", modifiers = {"Shift"}}, function()
+        local scr = mouse.screen
+        prefix = #screen[scr]:tags() + 1 .. ":"
+        awful.prompt.run(
+            {text = prefix},
+            widgets.pb[mouse.screen],
+            function(name)
+                if name == nil or #name == 0 then return end;
+                awful.tag.viewonly(
+                    awful.tag.add(name,
+                    {screen = mouse.screen,
+                    layout = awful.layout.suit.tile,
+                    mwfact = 0.55}))
+            end)
+        end),
     --}}}
 
     --{{{ Layout manipulation
@@ -200,13 +225,13 @@ for i = 1, 9 do
     --{{{ bind the numeric keys to 'normal' awesome keybindings
     globalkeys = awful.util.table.join(globalkeys,
         awful.key({settings.modkey}, i, function()
-            awful.tag.viewonly(shifty.getpos(i))
+            awful.tag.viewidx(i)
         end),
 
         awful.key({settings.modkey, "Control"}, i, function()
-            this_screen = awful.tag.selected().screen
-            t = shifty.getpos(i, this_screen)
-            t.selected = not t.selected
+            screen[mouse.screen]:tags()[i].selected =
+                                not screen[mouse.screen]:tags()[i].selected
+            capi.screen[t.screen]:emit_signal("tag::history::update")
         end),
 
         awful.key({settings.modkey, "Shift"}, i, function()
@@ -214,7 +239,7 @@ for i = 1, 9 do
                 local c = client.focus
                 slave = not (client.focus ==
                                 awful.client.getmaster(mouse.screen))
-                t = shifty.getpos(i)
+                t = screen[mouse.screen]:tags()[i]
                 awful.client.movetotag(t,c)
                 awful.tag.viewonly(t)
                 if slave then awful.client.setslave(c) end
