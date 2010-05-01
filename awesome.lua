@@ -160,7 +160,6 @@ local keymodifiers = {
     Super_R = 1,
 }
 
-
 function tag_strmatch()
 --{{{dynamically select tags that match keyboard input
 
@@ -257,13 +256,43 @@ function tag_slide(filter, value, scr)
 end
 --}}}
 
-function name2tag(name, s)
-    for _, t in pairs(screen[s]:tags()) do
-        if t.name == name then
+function tag_search(name, merge)
+    -- {{{
+    local merge = merge or false
+
+    for s = 1, screen.count() do
+        t = name2tag(name, s)
+        if t == nil then
+            -- create the tag if it doesnt already exist
+            t = awful.tag.add(name, settings.tags[name])
+        end
+
+        if t ~= nil then
+            if t.screen ~= mouse.screen then
+                awful.screen.focus(t.screen)
+            end
+            if merge then
+                t.selected = not t.selected
+            else
+                awful.tag.viewonly(t)
+            end
             return t
         end
     end
+    return false
 end
+--}}}
+
+function name2tag(name, s)
+    --{{{ find a tag based on its name
+    local s = s or mouse.screen
+    for i, t in ipairs(screen[s]:tags()) do
+        if t.name == name then
+            return t, i
+        end
+    end
+end
+--}}}
 
 -- Called externally and just pops to or merges with my active vim server when
 -- new files are dumped to it. (vim-start.sh)
@@ -289,8 +318,6 @@ settings   = dofile(awful.util.getdir("config").."/settings.lua")
 widgets    = dofile(awful.util.getdir("config").."/widgets.lua")
 globalkeys = dofile(awful.util.getdir("config").."/keys.lua")
 
-testing = dofile(awful.util.getdir("config").."/testing.lua")
-
 for name, props in pairs(settings.tags) do
     awful.tag.add(name, props)
 end
@@ -300,49 +327,6 @@ root.buttons(awful.util.table.join(
     awful.button({}, 4, awful.tag.viewnext),
     awful.button({}, 5, awful.tag.viewprev)
 ))
---}}}
-
---{{{clientkeys
-clientkeys = awful.util.table.join(
-    awful.key({settings.modkey}, "f", function(c)
-        c.fullscreen = not c.fullscreen  end),
-    awful.key({settings.modkey, "Shift"}, "c", function(c) c:kill() end),
-    awful.key({settings.modkey, "Shift"}, "0", function(c)
-        c.sticky = not c.sticky end),
-    awful.key({settings.modkey, "Mod1"}, "space", function(c)
-        --{{{toggle floating on client
-        awful.client.floating.toggle(c)
-        if awful.client.floating.get(c) then
-            awful.placement.centered(c)
-            client.focus = c
-            client.focus:raise()
-        else
-            awful.client.setslave(c)
-        end
-    end), --}}}
-    awful.key({settings.modkey, "Control"}, "Return", function(c)
-        c:swap(awful.client.getmaster())
-    end),
-    awful.key({settings.modkey, "Mod1"   }, "n", function(c)
-        client_filtermenu('minimized',true, client_restore)
-    end),
-    awful.key({settings.modkey, "Control"}, "m",
-        function(c)
-            if c.maximized_horizontal then
-                c.maximized_horizontal = false
-                c.maximized_vertical = false
-                c.minimized = true
-            elseif c.minimized then
-                c.minimized = false
-                client.focus = c
-                c:raise()
-            else
-                c.maximized_horizontal = not c.maximized_horizontal
-                c.maximized_vertical   = not c.maximized_vertical
-                c:raise()
-            end
-        end)
-    )
 --}}}
 
 -- Set keys
