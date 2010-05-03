@@ -224,8 +224,25 @@ end
 for i = 1, 9 do
     --{{{ bind the numeric keys to 'normal' awesome keybindings
     globalkeys = awful.util.table.join(globalkeys,
-        awful.key({settings.modkey}, i, function()
-            awful.tag.viewidx(i)
+        awful.key({settings.modkey}, "#" .. i + 9, function ()
+            local s = mouse.screen
+            local t = screen[s]:tags()[i]
+
+            print("s, i, t", s, i, t)
+            if t == nil then
+                local prefix = #screen[s]:tags() + i .. ":"
+                awful.prompt.run({text = prefix},
+                    widgets.pb[mouse.screen],
+                    function(name)
+                        if name == nil or #name == 0 then return end;
+                        awful.tag.viewonly(awful.tag.add(name,
+                                            {screen = mouse.screen,
+                                            layout = awful.layout.suit.tile,
+                                            mwfact = 0.55}))
+                                        end)
+            else
+                awful.tag.viewonly(t)
+            end
         end),
 
         awful.key({settings.modkey, "Control"}, i, function()
@@ -240,6 +257,16 @@ for i = 1, 9 do
                 slave = not (client.focus ==
                                 awful.client.getmaster(mouse.screen))
                 t = screen[mouse.screen]:tags()[i]
+
+                if t == nil then
+                    local new_tag_name = i .. ":" ..
+                                        (c.instance:gsub("%s.+$", "") or "new")
+                    t = awful.tag.add(new_tag_name,
+                        settings.tags[new_tag_name] or
+                            {screen = mouse.screen,
+                            layout =  awful.layout.suit.tile})
+                end
+
                 awful.client.movetotag(t,c)
                 awful.tag.viewonly(t)
                 if slave then awful.client.setslave(c) end
