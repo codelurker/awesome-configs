@@ -3,7 +3,7 @@ local os = os
 local math = math
 local mouse = mouse
 local awful = require("awful")
-local beautiful = require("beautiful")
+local btheme = require("beautiful")
 local naughty = require("naughty")
 local markup = require("markup")
 module("calendar")
@@ -32,10 +32,8 @@ function add(inc_offset)
     text = markup.heading(markup.font("monospace",
                                     os.date("%a, %d %B %Y") .. "\n" .. cal)),
     timeout = 0, hover_timeout = 0.5,
-    width = beautiful.calendar_w or 160,
-    bg = beautiful.calendar_bg or beautiful.fg_focus or #000000,
-    fg = beautiful.calendar_fg or beautiful.bg_focus or #ffffff,
+    width = btheme.calendar.width or 160,
+    bg = btheme.calendar.bg or btheme.fg_focus or #000000,
+    fg = btheme.calendar.fg or btheme.bg_focus or #ffffff,
     screen = mouse.screen})
 end
-
--- vim:set ft=lua fdm=marker ts=4 sw=4 et ai si: --

@@ -19,7 +19,6 @@ theme.iconpath = theme.path
 
 theme.wallpaper_cmd = { [1] = "nitrogen --restore" }
 
--- theme.fg_focus           = "#9dcd9e"
 theme.fg_normal     = "#abbfab"
 theme.bg_normal     = "#555555"
 theme.fg_focus      = "#bdedbe"
@@ -36,16 +35,19 @@ theme.fg_batt_crit  = "#a84007"
 theme.vol_bg        = "#000000"
 
 theme.border_width  = 2
+theme.border_unfocus = "#000000"
 theme.border_normal = "#000000"
-theme.border_focus  = "#3accc5"
+theme.border_focus  = "#dd7755"
 theme.border_marked = "#000080"
 
 theme.tooltip_border_color = theme.fg_focus
 
 -- calendar settings
-theme.calendar_w         = 160
-theme.calendar_fg        = theme.fg_normal
-theme.calendar_bg        = theme.bg_normal
+theme.calendar = {
+    width = 160,
+    fg = theme.fg_normal,
+    bg = theme.bg_normal,
+}
 
 theme.menu_height        = 15
 theme.menu_width         = 100
@@ -79,7 +81,5 @@ theme.layout_tiletop    = theme.path.."/layouts/tiletop.png"
 
 
 return theme
-
-
 
 -- vim:set ft=lua tw=80 fdm=marker ts=4 sw=4 et sta ai si:
