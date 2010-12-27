@@ -1,7 +1,6 @@
-
 -- some helper functins to make keybindings a bit more readable (?)
 function key_gen(args, ...)
-    --{{{ try to make keybindings look less messy
+    -- try to make keybindings look less messy
     -- vargs[1] must be a function address suitable for awful.key()
     local vargs = {...}
     if args == nil or vargs == nil then return end
@@ -12,13 +11,11 @@ function key_gen(args, ...)
     -- sanity
     if type(key) ~= 'string' then return end
     if vargs ~= nil and type(vargs[1]) ~= 'function' then
-        print("key_gen: rec'vd non fx arg", vargs[1])
         return
     end
 
     local modkeys = {}
     if args.modifiers ~= nil and type(args.modifiers) ~= 'table' then
-        print("key_gen: rec'vd non table modifiers", args.modifiers)
         return
     else
         modkeys = args.modifiers or {}
@@ -35,12 +32,10 @@ function key_gen(args, ...)
     else
         return awful.key(modkeys, key, f)
     end
-
 end
---}}}
 
 function key_app(args, ...)
-    --{{{ applications that are started by util.spawn...
+    -- applications that are started by util.spawn...
     -- i add "Mod1" to application starting
     local vargs = {...}
     local modkeys = args.modfiers or {}
@@ -48,12 +43,10 @@ function key_app(args, ...)
     args.modifiers = modkeys
 
     return key_gen(args, awful.util.spawn, unpack(vargs), false)
-
 end
--- }}}
 
 globalkeys = awful.util.table.join(
-    --{{{ global keys
+    -- global keys
     key_gen({key = "t", modifiers = {"Control", "Shift"}},
         keygrabber.run, tag_strmatch),
     key_gen({modifiers = {"Control"}, key = "r"}, awesome.restart),
@@ -66,42 +59,65 @@ globalkeys = awful.util.table.join(
     key_gen({key = "k"}, awful.client.focus.byidx, -1),
     key_gen({key = "e"}, revelation.revelation),
 
-    --{{{ tag manipulation
+    -- tag manipulation
     key_gen({key = "Escape"}, awful.tag.history.restore),
     key_gen({key = "n"},
-        function() awful.tag.move(awful.tag.getidx() + 1) end),
+        function()
+            awful.tag.move(awful.tag.getidx() + 1)
+            tag_reconcile()
+        end),
     key_gen({key = "n", modifiers = {"Shift"}},
-        function() awful.tag.move(awful.tag.getidx() - 1) end),
-    key_gen({key = "n", modifiers = {"Control"}}, function()
-        --{{{ move tag to next screen
-        tscr = awful.util.cycle(screen.count(), awful.tag.selected().screen + 1)
-        print("target scr", tscr)
-        lt = awful.tag.move_screen(tscr)
-        awful.tag.viewonly(lt)
-        print("moved tag screen", lt.screen)
-        mouse.screen = lt.screen
-        if #lt:clients() > 0 then client.focus = ts:clients()[1] end
-        end), --}}}
-    key_gen({key = "r", modifiers = {"Shift"}}, awful.tag.rename),
-    key_gen({key = "d", modifiers = {"Shift"}}, awful.tag.delete),
+        function()
+            awful.tag.move(awful.tag.getidx() - 1)
+            tag_reconcile()
+        end),
+    key_gen({key = "n", modifiers = {"Control"}}, function(t)
+        tag_to_screen(t)
+    end),
+    key_gen({key = "r", modifiers = {"Shift"}}, function()
+        awful.tag.rename()
+        tag_reconcile()
+    end),
+    key_gen({key = "d", modifiers = {"Shift"}}, function()
+        clients = awful.tag.selected():clients()
+        tag_delete()
+        for _,c in pairs(clients) do
+            for _, t in pairs(c:tags()) do
+                print(c.name, t.name)
+            end
+        end
+    end),
     key_gen({key = "a", modifiers = {"Shift"}}, function()
-        local scr = mouse.screen
-        prefix = #screen[scr]:tags() + 1 .. ":"
+        local scr = client.focus.screen
+        index = #screen[scr]:tags() + 1
+        prefix = index .. ":"
         awful.prompt.run(
             {text = prefix},
-            widgets.pb[mouse.screen],
+            widgets.promptbox[mouse.screen].widget,
             function(name)
-                if name == nil or #name == 0 then return end;
-                awful.tag.viewonly(
-                    awful.tag.add(name,
-                    {screen = mouse.screen,
-                    layout = awful.layout.suit.tile,
-                    mwfact = 0.55}))
+                t = tag_make(name, false)
+                awful.tag.viewonly(t)
             end)
         end),
-    --}}}
+    key_gen({key = "a", modifiers = {"Control"}}, function()
+        if client.focus then
+            local i = #screen[mouse.screen]:tags() + 1
+            local c = client.focus
+            local t = screen[mouse.screen]:tags()[i]
 
-    --{{{ Layout manipulation
+            if t == nil then
+                local new_tag_name = i .. ":" ..
+                (c.instance:gsub("%s.+$", "") or "new")
+                t = tag_make(new_tag_name, false)
+            end
+
+            local last_tags = c:tags()
+            awful.client.movetotag(t, c)
+            awful.tag.viewonly(t)
+        end
+    end),
+
+    -- Layout manipulation
     key_gen({key = "j", modifiers = {"Shift"}}, awful.client.swap.byidx, 1),
     key_gen({key = "k", modifiers = {"Shift"}}, awful.client.swap.byidx, -1),
     key_gen({key = "s"}, awful.screen.focus_relative, 1),
@@ -111,34 +127,22 @@ globalkeys = awful.util.table.join(
         awful.client.focus.history.previous()
         if client.focus then client.focus:raise() end
     end),
-    --}}}
 
-    --{{{ APPLICATIONS
+    -- applications
     key_gen({key = "Return"}, function()
         awful.util.spawn(settings.apps.terminal, false) end),
     key_app({key="f"}, settings.apps.filemgr),
-    key_app({key="c"}, "galculator"),
+    -- key_app({key="c"}, "galculator"),
     key_app({modifiers = {"Shift"}, key = "g"}, "gimp"),
     key_app({key = "v"}, "/home/perry/.bin/vim-start.sh"),
-    --}}}
 
-    -- {{{- MEDIA
-    -- music player
-    key_gen({key = "p"}, mocp.play, "PLAY"),
-    key_gen({key = "Down"}, mocp.play, "FWD"),
-    key_gen({key = "Up"}, mocp.play, "REV"),
-    key_gen({key = "XF86AudioPlay", use_modkey = false}, mocp.play, "PLAY"),
-    key_gen({key = "XF86AudioPrev", use_modkey = false}, mocp.play, "REV"),
-    key_gen({key = "XF86AudioNext", use_modkey = false}, mocp.play, "FWD"),
-    key_gen({key = "XF86AudioStop", use_modkey = false}, mocp.play, "STOP"),
     key_gen({key = "XF86AudioRaiseVolume", use_modkey = false}, volume.vol,
         "up", "5"),
     key_gen({key = "XF86AudioLowerVolume", use_modkey = false}, volume.vol,
         "down", "5"),
     key_gen({key = "XF86AudioMute", use_modkey = false}, volume.vol ),
-    --}}}
 
-    --{{{ Clients
+    -- Clients
     key_gen({key = "q"}, awful.client.incwfact, 0.03),
     key_gen({key = "a"}, awful.client.incwfact, -0.03),
     key_gen({key = "l"}, awful.tag.incmwfact, 0.03),
@@ -153,7 +157,8 @@ globalkeys = awful.util.table.join(
             settings.layouts, -1),
 
     -- Prompt
-    key_gen({key = "F1"}, function() widgets.promptbox[mouse.screen]:run() end),
+    key_gen({key = "F1"}, function() widgets.promptbox[mouse.screen]:run()
+    widgets.promptbox[mouse.screen].widget.text = "" end),
     key_gen({key = "F2"}, function()
         widgets.promptbox[mouse.screen]:run(nil, nil, function(args)
             cmd = "urxvt -name man -e zsh -c \'man "
@@ -161,41 +166,49 @@ globalkeys = awful.util.table.join(
             print("MANKB::::::::::::::: ",cmd)
             awfult.util.spawn_with_shell(cmd)
         end) end),
-    --}}}
 
-    -- {{{- POWER
+    -- power
     key_app({key = "h"}, 'sudo pm-hibernate'),
     key_app({key = "r"}, 'sudo reboot'),
     key_gen({key = "s", modifiers = {"Mod1"}}, function()
         awful.util.spawn('slock',false)
         os.execute('sudo pm-suspend')
     end),
-    --}}}
 
     -- monitors
-    key_app({key = "F4"}, '/home/perry/.bin/stupid.sh --soyo'),
-    key_app({key = "F5"}, '/home/perry/.bin/stupid.sh --sync --pos left-of'),
-    key_app({key = "F6"}, '/home/perry/.bin/stupid.sh --off')
+    key_app({key = "F4"}, '/home/perry/.bin/stupid --soyo'),
+    key_app({key = "F5"}, '/home/perry/.bin/stupid --sync --pos left-of'),
+    key_app({key = "F6"}, '/home/perry/.bin/stupid --off')
 )
---}}}
 
 tag_searches = {
-    --{{{table of tag/key pairs to appy to tag_search() function
+    --table of tag/key pairs to appy to tag_search() function
     dz = {key = "g", spawn = 'gschem'},
     web = {key = "w" , spawn = settings.apps.browser},
     mail = {key = "m", spawn = settings.apps.mail},
-    vbx = {key = "v",
+    vbox = {key = "v",
             modifiers = {"Mod1", "Shift"},
-            spawn = 'VBoxSDL -vm xp2'},
+            spawn = 'VBoxSDL --evdevkeymap --nohostkeys r -vm xp2'},
 }
---}}}
+
+globalkeys = awful.util.table.join(globalkeys,
+    awful.key({settings.modkey, "Mod1"}, "c", function ()
+        run_or_raise("galculator", {class = "Galculator"})
+    end),
+    awful.key({ "Mod1" }, "c", function ()
+     -- If you want to always position the menu on the same place set
+     -- coordinates
+     awful.menu.menu_keys.down = { "Down", "Alt_L" }
+     local cmenu = awful.menu.clients({width=245},
+                            { keygrabber=true, coords={x=525, y=330} })
+ end))
 
 for tag, search_table in pairs(tag_searches) do
-    --{{{bind searches to tag_search functionality
+    --bind searches to tag_search functionality
     -- for view exclusive
     globalkeys = awful.util.table.join(globalkeys,
                     key_gen(search_table, function()
-                        if not tag_search(tag, false) then
+                        if not tag_search(tag) then
                             awful.util.spawn(search_table.spawn, false)
                         end
                     end))
@@ -207,10 +220,7 @@ for tag, search_table in pairs(tag_searches) do
     else
         mod_table = {"Control"}
     end
-    k_table = { key = search_table.key, modifiers = mod_table}
-    for k,v in pairs(k_table) do
-        print('k_table', k, v)
-    end
+    k_table = {key = search_table.key, modifiers = mod_table}
 
     globalkeys = awful.util.table.join(globalkeys,
                     key_gen(k_table, function()
@@ -219,36 +229,32 @@ for tag, search_table in pairs(tag_searches) do
                         end
                     end))
 end
---}}}
 
 for i = 1, 9 do
-    --{{{ bind the numeric keys to 'normal' awesome keybindings
+    -- bind the numeric keys to 'normal' awesome keybindings
     globalkeys = awful.util.table.join(globalkeys,
         awful.key({settings.modkey}, "#" .. i + 9, function ()
             local s = mouse.screen
-            local t = screen[s]:tags()[i]
+            local tags = screen[s]:tags()
+            local t = tags[i]
 
-            print("s, i, t", s, i, t)
             if t == nil then
-                local prefix = #screen[s]:tags() + i .. ":"
+                local count = #tags
+
+                local prefix = (count + 1) .. ":"
                 awful.prompt.run({text = prefix},
-                    widgets.pb[mouse.screen],
+                    widgets.promptbox[mouse.screen].widget,
                     function(name)
-                        if name == nil or #name == 0 then return end;
-                        awful.tag.viewonly(awful.tag.add(name,
-                                            {screen = mouse.screen,
-                                            layout = awful.layout.suit.tile,
-                                            mwfact = 0.55}))
-                                        end)
+                        t = tag_make(name, false)
+                        awful.tag.viewonly(t)
+                    end)
             else
                 awful.tag.viewonly(t)
             end
         end),
 
         awful.key({settings.modkey, "Control"}, i, function()
-            screen[mouse.screen]:tags()[i].selected =
-                                not screen[mouse.screen]:tags()[i].selected
-            capi.screen[t.screen]:emit_signal("tag::history::update")
+            awful.tag.viewtoggle(screen[mouse.screen]:tags()[i])
         end),
 
         awful.key({settings.modkey, "Shift"}, i, function()
@@ -261,21 +267,16 @@ for i = 1, 9 do
                 if t == nil then
                     local new_tag_name = i .. ":" ..
                                         (c.instance:gsub("%s.+$", "") or "new")
-                    t = awful.tag.add(new_tag_name,
-                        settings.tags[new_tag_name] or
-                            {screen = mouse.screen,
-                            layout =  awful.layout.suit.tile})
+                    t = tag_make(new_tag_name, false)
                 end
 
-                awful.client.movetotag(t,c)
+                local last_tags = c:tags()
+                awful.client.movetotag(t, c)
                 awful.tag.viewonly(t)
                 if slave then awful.client.setslave(c) end
             end
         end)
     )
 end
---}}}
 
 return globalkeys
-
--- vim:set ft=lua fdm=marker ts=4 sw=4 et ai si: --
